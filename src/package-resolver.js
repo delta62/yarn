@@ -20,6 +20,7 @@ const semver = require('semver');
 
 export type ResolverOptions = {|
   isFlat?: boolean,
+  updateTransitive?: boolean,
   isFrozen?: boolean,
   workspaceLayout?: WorkspaceLayout,
 |};
@@ -535,10 +536,11 @@ export default class PackageResolver {
 
   async init(
     deps: DependencyRequestPatterns,
-    {isFlat, isFrozen, workspaceLayout}: ResolverOptions = {isFlat: false, isFrozen: false, workspaceLayout: undefined},
+    {isFlat, isFrozen, updateTransitive, workspaceLayout}: ResolverOptions = {isFlat: false, isFrozen: false, updateTransitive: false, workspaceLayout: undefined},
   ): Promise<void> {
     this.flat = Boolean(isFlat);
     this.frozen = Boolean(isFrozen);
+    this.updateTransitive = Boolean(updateTransitive);
     this.workspaceLayout = workspaceLayout;
     const activity = (this.activity = this.reporter.activity());
 
@@ -569,12 +571,17 @@ export default class PackageResolver {
   optimizeResolutions(name: string) {
     const patterns: Array<string> = this.dedupePatterns(this.patternsByPackage[name] || []);
 
-    // don't optimize things that already have a lockfile entry:
-    // https://github.com/yarnpkg/yarn/issues/79
-    const collapsablePatterns = patterns.filter(pattern => {
-      const remote = this.patterns[pattern]._remote;
-      return !this.lockfile.getLocked(pattern) && (!remote || remote.type !== 'workspace');
-    });
+    let collapsablePatterns: Array<string>;
+    if (this.updateTransitive) {
+      collapsablePatterns = patterns;
+    } else {
+      // don't optimize things that already have a lockfile entry:
+      // https://github.com/yarnpkg/yarn/issues/79
+      collapsablePatterns = patterns.filter(pattern => {
+        const remote = this.patterns[pattern]._remote;
+        return !this.lockfile.getLocked(pattern) && (!remote || remote.type !== 'workspace');
+      });
+    }
     if (collapsablePatterns.length < 2) {
       return;
     }

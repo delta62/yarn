@@ -61,6 +61,7 @@ type Flags = {
   lockfile: boolean,
   pureLockfile: boolean,
   frozenLockfile: boolean,
+  updateTransitive: boolean,
   skipIntegrityCheck: boolean,
   checkFiles: boolean,
 
@@ -137,6 +138,7 @@ function normalizeFlags(config: Config, rawFlags: Object): Flags {
     lockfile: rawFlags.lockfile !== false,
     pureLockfile: !!rawFlags.pureLockfile,
     updateChecksums: !!rawFlags.updateChecksums,
+    updateTransitive: !!rawFlags.updateTransitive,
     skipIntegrityCheck: !!rawFlags.skipIntegrityCheck,
     frozenLockfile: !!rawFlags.frozenLockfile,
     linkDuplicates: !!rawFlags.linkDuplicates,
@@ -544,6 +546,7 @@ export class Install {
         await this.resolver.init(this.prepareRequests(depRequests), {
           isFlat: this.flags.flat,
           isFrozen: this.flags.frozenLockfile,
+          updateTransitive: this.flags.updateTransitive,
           workspaceLayout,
         });
         topLevelPatterns = this.preparePatterns(rawPatterns);
@@ -980,6 +983,7 @@ export function setFlags(commander: Object) {
   commander.option('-O, --save-optional', 'DEPRECATED - save package to your `optionalDependencies`');
   commander.option('-E, --save-exact', 'DEPRECATED');
   commander.option('-T, --save-tilde', 'DEPRECATED');
+  commander.option('--update-transitive', 'also update transitive dependencies in the lockfile');
 }
 
 export async function install(config: Config, reporter: Reporter, flags: Object, lockfile: Lockfile): Promise<void> {
